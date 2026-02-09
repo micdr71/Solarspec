@@ -2,19 +2,36 @@
 
 from __future__ import annotations
 
+import json
 import math
+from pathlib import Path
 
 from solarspec.config import Settings
 from solarspec.models import (
     AnalysisResult,
     EconomicAnalysis,
+    Inverter,
     PVModule,
     SystemDesign,
 )
 
+_DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+
+
+def _load_product_catalog() -> dict:
+    path = _DATA_DIR / "products.json"
+    if path.exists():
+        return json.loads(path.read_text(encoding="utf-8"))
+    return {"modules": [], "inverters": []}
+
 
 def _default_module() -> PVModule:
-    """Return a reference PV module (generic high-efficiency monocrystalline)."""
+    """Return best available module from catalog, or a generic fallback."""
+    catalog = _load_product_catalog()
+    modules = catalog.get("modules", [])
+    if modules:
+        best = max(modules, key=lambda m: m.get("efficiency", 0))
+        return PVModule(**best)
     return PVModule(
         manufacturer="Generic",
         model="Mono PERC 440W",
@@ -26,6 +43,37 @@ def _default_module() -> PVModule:
         warranty_years=25,
         degradation_rate=0.4,
     )
+
+
+def _select_inverter(system_kwp: float) -> Inverter | None:
+    """Select the best-matching inverter from the catalog for a given system size."""
+    catalog = _load_product_catalog()
+    inverters = catalog.get("inverters", [])
+    if not inverters:
+        return None
+
+    best: dict | None = None
+    best_score = float("inf")
+    for inv in inverters:
+        power = inv.get("power_kw", 0)
+        max_dc = inv.get("max_dc_power_kw", 0)
+        # Inverter AC power should be >= system kWp (slightly oversized OK)
+        # DC input should accommodate the array
+        if max_dc < system_kwp * 0.8:
+            continue
+        # Prefer smallest inverter that can handle the system
+        score = abs(power - system_kwp) + (0 if power >= system_kwp * 0.9 else 10)
+        if score < best_score:
+            best_score = score
+            best = inv
+
+    if best is None and inverters:
+        # Pick the largest available
+        best = max(inverters, key=lambda i: i.get("power_kw", 0))
+
+    if best:
+        return Inverter(**{k: v for k, v in best.items() if not k.startswith("_")})
+    return None
 
 
 def design_system(
@@ -113,21 +161,47 @@ def design_system(
     else:
         self_consumption_rate = 0.30
 
+    # Inverter selection
+    inverter = _select_inverter(actual_kwp)
+    if inverter:
+        notes.append(f"Inverter selezionato: {inverter.manufacturer} {inverter.model}")
+
     # Economic analysis
     total_cost = actual_kwp * settings.default_cost_per_kwp
     annual_self_consumed = estimated_production * self_consumption_rate
     annual_exported = estimated_production * (1 - self_consumption_rate)
 
-    # Savings = self-consumed * electricity price + exported * feed-in tariff (~0.04 EUR/kWh SSP)
-    feed_in_tariff = 0.04  # Approximate SSP value
+    # Detrazione fiscale 50% (ristrutturazione edilizia) — max €96.000, in 10 anni
+    tax_deduction_rate = 0.50
+    max_deduction = 96000.0
+    deduction_total = min(total_cost * tax_deduction_rate, max_deduction)
+    annual_deduction = deduction_total / 10  # 10 rate annuali
+
+    # SSP (Scambio Sul Posto) for systems <= 500 kWp
+    # RID (Ritiro Dedicato) as alternative
+    if actual_kwp <= 20:
+        incentive_type = "SSP (Scambio Sul Posto) + Detrazione 50%"
+        feed_in_tariff = 0.06  # SSP more favorable for small systems
+    elif actual_kwp <= 500:
+        incentive_type = "SSP (Scambio Sul Posto) + Detrazione 50%"
+        feed_in_tariff = 0.04
+    else:
+        incentive_type = "RID (Ritiro Dedicato)"
+        feed_in_tariff = 0.04
+        deduction_total = 0.0
+        annual_deduction = 0.0
+
     annual_savings = (
         annual_self_consumed * settings.default_electricity_price
         + annual_exported * feed_in_tariff
+        + annual_deduction
     )
 
-    payback = total_cost / annual_savings if annual_savings > 0 else 99
+    # Effective cost after incentives
+    effective_cost = total_cost - deduction_total
+    payback = effective_cost / (annual_savings - annual_deduction) if (annual_savings - annual_deduction) > 0 else 99
     roi_25y = ((annual_savings * 25 - total_cost) / total_cost) * 100
-    lcoe = total_cost / (estimated_production * 25) if estimated_production > 0 else 0
+    lcoe = effective_cost / (estimated_production * 25) if estimated_production > 0 else 0
 
     economics = EconomicAnalysis(
         total_cost_eur=round(total_cost, 2),
@@ -135,8 +209,8 @@ def design_system(
         annual_savings_eur=round(annual_savings, 2),
         payback_years=round(payback, 1),
         roi_25y_percent=round(roi_25y, 1),
-        incentive_type="SSP (Scambio Sul Posto)",
-        incentive_value_eur=round(annual_exported * feed_in_tariff * 25, 2),
+        incentive_type=incentive_type,
+        incentive_value_eur=round(deduction_total + annual_exported * feed_in_tariff * 25, 2),
         lcoe=round(lcoe, 4),
     )
 
@@ -146,7 +220,7 @@ def design_system(
         system_size_kwp=round(actual_kwp, 2),
         num_panels=num_panels,
         module=module,
-        inverter=None,  # TODO: Inverter selection
+        inverter=inverter,
         estimated_production_kwh=round(estimated_production, 0),
         self_consumption_rate=round(self_consumption_rate * 100, 1),
         performance_ratio=settings.default_performance_ratio,

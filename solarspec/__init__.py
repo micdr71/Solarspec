@@ -48,8 +48,8 @@ class SolarSpec:
         solar_data = get_solar_data(location.latitude, location.longitude)
 
         # Step 3: Climate and seismic classification
-        climate_zone = get_climate_zone(location.municipality)
-        seismic_zone = get_seismic_zone(location.municipality)
+        climate_zone = get_climate_zone(location.municipality, location.region)
+        seismic_zone = get_seismic_zone(location.municipality, location.region)
 
         site = SiteData(
             address=address,

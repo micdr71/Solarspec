@@ -1,8 +1,6 @@
-# ☀️ SolarSpec
+# SolarSpec
 
 **Generatore intelligente di capitolati tecnici per impianti fotovoltaici in Italia**
-
-*Automated technical specification generator for photovoltaic installations in Italy*
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -10,98 +8,102 @@
 
 ---
 
-## 🎯 Cosa fa SolarSpec?
+## Cosa fa SolarSpec?
 
-SolarSpec trasforma un indirizzo italiano in un **capitolato tecnico completo** per l'installazione di un impianto fotovoltaico. Automatizza il lavoro che oggi richiede ore di analisi manuale, integrando dati geografici, normativi ed economici in un unico flusso.
+SolarSpec trasforma un indirizzo italiano in un **capitolato tecnico completo** per l'installazione di un impianto fotovoltaico. Automatizza il lavoro che oggi richiede ore di analisi manuale, integrando dati geografici, solari, normativi ed economici in un unico flusso.
 
-### Il problema
-Gli installatori fotovoltaici in Italia dedicano **2-4 ore per ogni preventivo tecnico**, raccogliendo manualmente dati da fonti diverse (catasto, PVGIS, normative locali, listini). SolarSpec riduce questo processo a **pochi minuti**.
-
-### La soluzione
+**Il problema:** gli installatori fotovoltaici in Italia dedicano 2-4 ore per ogni preventivo tecnico, raccogliendo manualmente dati da fonti diverse (PVGIS, normative, listini). SolarSpec riduce questo processo a pochi minuti.
 
 ```
-📍 Indirizzo → 🔍 Analisi automatica → 📄 Capitolato tecnico completo
+Indirizzo --> Geocoding --> Analisi solare PVGIS --> Zona climatica/sismica
+                                                          |
+                                                          v
+   Capitolato PDF/DOCX <-- Analisi economica <-- Dimensionamento impianto
 ```
-
-1. **Input**: indirizzo o coordinate GPS
-2. **Analisi**: irraggiamento solare, vincoli urbanistici, zona climatica e sismica
-3. **Dimensionamento**: calcolo ottimale dell'impianto con selezione componenti
-4. **Output**: documento tecnico conforme alla normativa italiana
 
 ---
 
-## ✨ Funzionalità
+## Funzionalita'
 
 | Modulo | Descrizione | Stato |
 |--------|-------------|-------|
-| 🌍 **Geo Analysis** | Geocoding, zona climatica, zona sismica, vincoli paesaggistici | 🔨 In sviluppo |
-| ☀️ **Solar Analysis** | Irraggiamento via PVGIS API, analisi ombreggiamenti, orientamento ottimale | 🔨 In sviluppo |
-| ⚡ **System Design** | Dimensionamento impianto, selezione inverter/moduli, schema elettrico | 📋 Pianificato |
-| 📋 **Compliance** | Normativa CEI 0-21, pratiche GSE, regolamenti comunali | 📋 Pianificato |
-| 💰 **Economics** | Stima costi, analisi ROI, simulazione incentivi (SSP, RID, detrazioni) | 📋 Pianificato |
-| 📄 **Doc Generator** | Generazione capitolato in DOCX/PDF conforme | 📋 Pianificato |
-| 🤖 **AI Layer** | Narrativa tecnica via LLM, Q&A sul progetto | 📋 Pianificato |
+| **Geo Analysis** | Geocoding Nominatim, zona climatica (A-F), zona sismica (1-4) per 110+ comuni | Completo |
+| **Solar Analysis** | Irraggiamento via PVGIS API, inclinazione/azimut ottimali, producibilita' per kWp | Completo |
+| **System Design** | Dimensionamento impianto, selezione automatica modulo e inverter da catalogo | Completo |
+| **Economics** | Costi, ROI 25 anni, LCOE, detrazioni fiscali 50%, SSP/RID, payback | Completo |
+| **Doc Generator** | Generazione capitolato tecnico in DOCX e PDF (via WeasyPrint) | Completo |
+| **Web Interface** | Interfaccia grafica web con FastAPI, 3 step interattivi, mappa, grafici | Completo |
+| **PV Catalog** | Database prodotti: 6 moduli (LONGi, Trina, JA Solar, SunPower, Canadian Solar, REC) + 10 inverter (Huawei, SMA, Fronius, SolarEdge) | Completo |
+| **AI Layer** | Narrativa tecnica via Claude API | Pianificato |
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Installazione
 
 ```bash
-# Clone del repository
-git clone https://github.com/YOUR_USERNAME/solarspec.git
-cd solarspec
+git clone https://github.com/micdr71/Solarspec.git
+cd Solarspec
 
 # Crea ambiente virtuale
 python -m venv .venv
 source .venv/bin/activate  # Linux/Mac
 # .venv\Scripts\activate   # Windows
 
-# Installa dipendenze
-pip install -e ".[dev]"
+# Installa con tutte le dipendenze
+pip install -e ".[all]"
 ```
 
-### Uso base
+### Interfaccia web (consigliato)
+
+```bash
+solarspec serve
+# Apri nel browser: http://localhost:8000
+```
+
+L'interfaccia web guida l'utente in 3 step:
+1. **Analisi Sito** -- inserisci un indirizzo, ottieni dati solari, mappa interattiva, grafico irraggiamento mensile
+2. **Dimensionamento** -- inserisci consumo annuo e area tetto, ottieni progetto completo con componenti, economia, incentivi
+3. **Genera Documento** -- scarica il capitolato tecnico in PDF o DOCX, oppure visualizza l'anteprima
+
+### Uso via Python
 
 ```python
 from solarspec import SolarSpec
 
-# Inizializza il generatore
 spec = SolarSpec()
 
-# Analisi da indirizzo
+# Analisi sito
 result = spec.analyze("Via Roma 1, 20121 Milano MI")
+print(result.solar_data.annual_irradiation)       # kWh/m2/anno
+print(result.solar_data.optimal_tilt)              # gradi
+print(result.solar_data.annual_production_per_kwp) # kWh/kWp/anno
 
-# Mostra risultati analisi solare
-print(result.solar_data.annual_irradiation)  # kWh/m²/anno
-print(result.solar_data.optimal_tilt)        # gradi
-print(result.solar_data.optimal_azimuth)     # gradi
-
-# Dimensiona l'impianto
+# Dimensionamento impianto
 design = spec.design(
     address="Via Roma 1, 20121 Milano MI",
-    annual_consumption_kwh=4500,  # consumo annuo famiglia
+    annual_consumption_kwh=4500,
     roof_area_m2=40,
 )
 
-print(design.system_size_kwp)      # Potenza nominale
-print(design.num_panels)           # Numero moduli
-print(design.estimated_production) # Produzione stimata kWh/anno
-print(design.self_consumption_rate) # % autoconsumo
+print(design.system_size_kwp)        # Potenza nominale (kWp)
+print(design.num_panels)             # Numero moduli
+print(design.estimated_production_kwh)  # Produzione stimata (kWh/anno)
+print(design.economics.payback_years)   # Tempo di rientro (anni)
+print(design.inverter.manufacturer)     # Inverter selezionato
 
-# Genera il capitolato tecnico
-spec.generate_document(
-    design=design,
-    output_path="capitolato_via_roma_1.docx",
-    format="docx"
-)
+# Genera capitolato PDF
+spec.generate_document(design=design, output_path="capitolato.pdf", format="pdf")
+
+# Oppure DOCX
+spec.generate_document(design=design, output_path="capitolato.docx", format="docx")
 ```
 
 ### Uso via CLI
 
 ```bash
-# Analisi rapida
+# Analisi rapida di un sito
 solarspec analyze "Via Dante 10, 00100 Roma"
 
 # Genera capitolato completo
@@ -110,125 +112,195 @@ solarspec generate \
     --consumption 5000 \
     --roof-area 50 \
     --output capitolato.docx
-```
 
-### Uso via API (FastAPI)
-
-```bash
-# Avvia il server
+# Avvia server web
 solarspec serve --port 8000
 
-# Endpoint disponibili:
-# POST /api/v1/analyze      - Analisi sito
-# POST /api/v1/design       - Dimensionamento
-# POST /api/v1/generate     - Genera documento
-# GET  /api/v1/products     - Database prodotti
+# Versione
+solarspec version
+```
+
+### API REST
+
+Con il server avviato (`solarspec serve`), sono disponibili i seguenti endpoint:
+
+| Metodo | Endpoint | Descrizione |
+|--------|----------|-------------|
+| GET | `/` | Interfaccia web |
+| GET | `/api/health` | Health check |
+| POST | `/api/analyze` | Analisi sito (geocoding + PVGIS) |
+| POST | `/api/design` | Dimensionamento impianto completo |
+| POST | `/api/generate` | Genera e scarica capitolato PDF/DOCX |
+| POST | `/api/preview` | Anteprima HTML del capitolato |
+| GET | `/docs` | Documentazione interattiva Swagger |
+
+Esempio con curl:
+
+```bash
+curl -X POST http://localhost:8000/api/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"address": "Via Roma 1, Milano"}'
 ```
 
 ---
 
-## 🏗️ Architettura
+## Architettura
 
 ```
 solarspec/
 ├── solarspec/
-│   ├── __init__.py          # Package principale + classe SolarSpec
-│   ├── config.py            # Configurazione e settings
-│   ├── models.py            # Modelli dati (Pydantic)
+│   ├── __init__.py          # Classe SolarSpec (entry point principale)
+│   ├── config.py            # Settings (Pydantic BaseSettings, env vars)
+│   ├── models.py            # Modelli dati: Location, SiteData, SolarData,
+│   │                        #   PVModule, Inverter, EconomicAnalysis, SystemDesign
+│   ├── cli.py               # CLI Typer: analyze, generate, serve, version
 │   ├── core/
-│   │   ├── geo.py           # Geocoding e analisi geografica
-│   │   ├── solar.py         # Analisi solare (PVGIS integration)
-│   │   ├── climate.py       # Zone climatiche italiane
-│   │   ├── seismic.py       # Classificazione sismica
-│   │   └── compliance.py    # Verifica normativa
+│   │   ├── geo.py           # Geocoding Nominatim + DB zone climatiche/sismiche
+│   │   └── solar.py         # Integrazione PVGIS (irraggiamento, angoli ottimali)
 │   ├── generators/
-│   │   ├── designer.py      # Dimensionamento impianto
-│   │   ├── economics.py     # Analisi economica
-│   │   └── document.py      # Generazione documenti
+│   │   ├── designer.py      # Dimensionamento, selezione inverter, analisi economica
+│   │   └── document.py      # Generazione DOCX (python-docx) e PDF (WeasyPrint)
 │   ├── api/
-│   │   ├── app.py           # FastAPI application
-│   │   └── routes.py        # API endpoints
+│   │   └── __init__.py      # FastAPI app + tutti gli endpoint + HTML inline
 │   ├── data/
-│   │   ├── climate_zones.json    # Zone climatiche per comune
-│   │   ├── seismic_zones.json    # Zone sismiche per comune
-│   │   └── products/             # Database prodotti (moduli, inverter)
-│   └── utils/
-│       ├── geocoding.py     # Utility geocoding
-│       └── units.py         # Conversioni unità di misura
+│   │   ├── climate_zones.json   # Zone climatiche per 110+ capoluoghi
+│   │   ├── seismic_zones.json   # Zone sismiche per 110+ capoluoghi
+│   │   └── products.json        # Catalogo moduli FV e inverter
+│   └── web/
+│       ├── static/
+│       │   ├── style.css    # CSS interfaccia web
+│       │   └── app.js       # JavaScript frontend
+│       └── templates/
+│           └── index.html   # Template HTML
 ├── tests/
-├── docs/
+│   ├── test_core.py         # Test modelli e designer
+│   ├── test_geo.py          # Test zone climatiche e sismiche
+│   ├── test_designer.py     # Test catalogo prodotti e selezione inverter
+│   └── test_api.py          # Test endpoint API
 ├── examples/
+│   └── quick_analysis.py    # Script esempio
+├── docs/
+│   └── CONTRIBUTING.md
 ├── pyproject.toml
 └── README.md
 ```
 
 ### Stack tecnologico
 
-- **Python 3.11+** — Linguaggio principale
-- **Pydantic v2** — Validazione dati e modelli
-- **HTTPX** — Client HTTP async per API esterne
-- **pvlib** — Calcoli fotovoltaici (irraggiamento, produzione)
-- **FastAPI** — API REST opzionale
-- **python-docx** — Generazione documenti Word
-- **WeasyPrint** — Generazione PDF
-- **Ruff** — Linting e formatting
+| Componente | Tecnologia |
+|-----------|-----------|
+| Linguaggio | Python 3.11+ |
+| Validazione dati | Pydantic v2 + pydantic-settings |
+| HTTP client | HTTPX (per Nominatim e PVGIS) |
+| Calcoli PV | pvlib |
+| Generazione DOCX | python-docx |
+| Generazione PDF | WeasyPrint |
+| CLI | Typer + Rich |
+| API web | FastAPI + Uvicorn |
+| Frontend | HTML/CSS/JS (Leaflet per mappe, Chart.js per grafici) |
+| Test | Pytest |
+| Linting | Ruff |
 
-### API esterne utilizzate
+### API esterne utilizzate (gratuite)
 
-| API | Uso | Costo |
-|-----|-----|-------|
-| [PVGIS (EU JRC)](https://re.jrc.ec.europa.eu/pvg_tools/en/) | Dati irraggiamento solare | Gratuita |
-| [Nominatim (OpenStreetMap)](https://nominatim.org/) | Geocoding | Gratuita |
-| [OpenMeteo](https://open-meteo.com/) | Dati meteo storici | Gratuita |
-
----
-
-## 🇮🇹 Normativa di riferimento
-
-SolarSpec genera documentazione conforme a:
-
-- **CEI 0-21** — Regola tecnica di connessione utenti attivi BT
-- **CEI 0-16** — Regola tecnica di connessione utenti attivi MT
-- **D.Lgs. 199/2021** — Attuazione direttiva RED II
-- **DM 14/01/2008** — Norme tecniche costruzioni (NTC)
-- **GSE** — Procedure per Scambio Sul Posto e Ritiro Dedicato
-- **Regolamenti edilizi comunali** — Vincoli locali
+| API | Uso |
+|-----|-----|
+| [PVGIS (EU JRC)](https://re.jrc.ec.europa.eu/pvg_tools/en/) | Dati irraggiamento solare, angoli ottimali, producibilita' |
+| [Nominatim (OpenStreetMap)](https://nominatim.org/) | Geocoding indirizzi italiani |
 
 ---
 
-## 🤝 Contributing
+## Database inclusi
+
+### Catalogo prodotti PV
+
+**Moduli fotovoltaici:**
+- LONGi Hi-MO 6 (440 Wp, 22.3%)
+- JA Solar JAM54S31 (410 Wp, 21.5%)
+- Trina Solar Vertex S+ (445 Wp, 22.5%)
+- SunPower Maxeon 6 (440 Wp, 22.8%)
+- Canadian Solar HiHero (420 Wp, 21.8%)
+- REC Alpha Pure-R (430 Wp, 22.2%)
+
+**Inverter:**
+- Huawei SUN2000 (3/5/6/10 kW)
+- SMA Sunny Tripower (5/8 kW)
+- Fronius Primo GEN24 (3/6 kW)
+- SolarEdge SE-H-IT (5/10 kW)
+
+### Zone climatiche e sismiche
+
+Database JSON per 110+ capoluoghi di provincia italiani, con fallback automatico a livello regionale per i comuni non presenti.
+
+---
+
+## Analisi economica
+
+Il dimensionamento include un'analisi economica completa:
+
+- **Costo totale** e costo per kWp
+- **Risparmio annuo** (autoconsumo + vendita energia)
+- **Tempo di rientro** (payback) considerando incentivi
+- **ROI a 25 anni**
+- **LCOE** (Levelized Cost of Energy)
+- **Detrazione fiscale 50%** -- max 96.000 EUR in 10 rate annuali
+- **SSP** (Scambio Sul Posto) per impianti fino a 500 kWp
+- **RID** (Ritiro Dedicato) per impianti piu' grandi
+
+---
+
+## Normativa di riferimento
+
+SolarSpec genera documentazione con riferimenti a:
+
+- **CEI 0-21** -- Regola tecnica di connessione utenti attivi BT
+- **CEI 0-16** -- Regola tecnica di connessione utenti attivi MT
+- **D.Lgs. 199/2021** -- Attuazione direttiva RED II
+- **DM 14/01/2008** -- Norme tecniche costruzioni (NTC)
+- **D.L. 63/2013** -- Detrazioni fiscali ristrutturazione edilizia
+- **Delibera ARERA 03/2020** -- Regolazione SSP
+
+---
+
+## Test
+
+```bash
+# Esegui tutti i test (24 test)
+pytest
+
+# Con coverage
+pytest --cov=solarspec
+
+# Solo test specifici
+pytest tests/test_api.py -v
+pytest tests/test_geo.py -v
+```
+
+---
+
+## Contributing
 
 I contributi sono benvenuti! Consulta [CONTRIBUTING.md](docs/CONTRIBUTING.md) per le linee guida.
 
-### Come contribuire
-
-1. Fork del repository
-2. Crea un branch (`git checkout -b feature/nuova-funzionalita`)
-3. Commit delle modifiche (`git commit -m 'Aggiunge nuova funzionalità'`)
-4. Push sul branch (`git push origin feature/nuova-funzionalita`)
-5. Apri una Pull Request
-
 ### Aree dove servono contributi
 
-- 🗺️ Database vincoli paesaggistici per provincia
-- ⚡ Database prodotti fotovoltaici aggiornato
-- 📐 Template capitolati per diverse tipologie di impianto
-- 🧪 Test e validazione calcoli
+- Ampliare il database zone climatiche/sismiche a tutti i comuni italiani
+- Aggiungere altri prodotti al catalogo PV
+- Analisi ombreggiamenti
+- Integrazione catasto per dati edificio
+- Layer AI per narrativa tecnica automatica
+- Deploy cloud (Railway, Render, Fly.io)
 
 ---
 
-## 📜 Licenza
+## Licenza
 
 Distribuito sotto licenza MIT. Vedi [LICENSE](LICENSE) per dettagli.
 
 ---
 
-## 📬 Contatti
+## Contatti
 
-Creato con ☀️ da **Michele** — Ingegnere edile, imprenditore nel settore delle energie rinnovabili.
+Creato da **Michele** -- Ingegnere edile, imprenditore nel settore delle energie rinnovabili.
 
-- 🌐 [LuceViva](https://luceviva.it) — Marketplace B2B per il fotovoltaico in Italia
-
----
-
-> *"Portare i metodi della progettazione parametrica nel mondo del fotovoltaico residenziale."*
+- [LuceViva](https://luceviva.it) -- Marketplace B2B per il fotovoltaico in Italia

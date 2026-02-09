@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SolarSpec — Generatore Capitolati Tecnici FV</title>
+
+    <!-- App CSS (local, loads immediately) -->
+    <link rel="stylesheet" href="/static/style.css">
+
+    <!-- External CSS loaded async (non-blocking) -->
+    <link rel="preload" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" as="style" onload="this.onload=null;this.rel='stylesheet'" onerror="">
+    <noscript><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"></noscript>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+    <div class="header-content">
+        <div class="logo">
+            <span class="logo-icon">&#9728;</span>
+            <div>
+                <h1>SolarSpec</h1>
+                <p>Generatore capitolati tecnici per impianti fotovoltaici</p>
+            </div>
+        </div>
+        <span class="header-badge">v0.1.0 Alpha</span>
+    </div>
+</header>
+
+<!-- Main Content -->
+<div class="container">
+
+    <!-- Tabs -->
+    <div class="tabs">
+        <button class="tab-btn active" data-tab="tab-analyze">
+            <span class="step-num">1</span>
+            Analisi Sito
+        </button>
+        <button class="tab-btn" data-tab="tab-design">
+            <span class="step-num">2</span>
+            Dimensionamento
+        </button>
+        <button class="tab-btn" data-tab="tab-generate" style="opacity: 0.5; pointer-events: none;">
+            <span class="step-num">3</span>
+            Genera Documento
+        </button>
+    </div>
+
+    <!-- ==================== TAB 1: ANALISI ==================== -->
+    <div id="tab-analyze" class="tab-panel active">
+        <div class="card">
+            <div class="card-title">
+                <span class="icon">&#128205;</span>
+                Analisi del sito
+            </div>
+            <p style="color: var(--text-light); margin-bottom: 20px;">
+                Inserisci un indirizzo italiano per ottenere l'analisi solare completa del sito.
+            </p>
+
+            <div class="form-group">
+                <label class="form-label" for="analyze-address">Indirizzo</label>
+                <input type="text" id="analyze-address" class="form-input"
+                       placeholder="Es. Via Roma 1, 20121 Milano MI"
+                       autocomplete="off">
+                <p class="form-hint">Indirizzo completo con numero civico, CAP, comune e provincia</p>
+            </div>
+
+            <div id="analyze-error" class="error-msg"></div>
+
+            <button id="analyze-btn" class="btn btn-primary" onclick="analyzeAddress()">
+                &#128269; Analizza sito
+            </button>
+        </div>
+
+        <!-- Spinner -->
+        <div id="analyze-spinner" class="spinner">
+            <div class="spinner-circle"></div>
+            <p class="spinner-text">Analisi in corso... (geocoding + dati solari PVGIS)</p>
+        </div>
+
+        <!-- Results -->
+        <div id="analyze-results" style="display: none;">
+            <!-- Solar KPIs -->
+            <div class="results-grid" style="margin-bottom: 20px;">
+                <div class="result-card">
+                    <h3>Irraggiamento annuo</h3>
+                    <div class="result-value" id="res-irradiation">-</div>
+                </div>
+                <div class="result-card">
+                    <h3>Inclinazione ottimale</h3>
+                    <div class="result-value" id="res-tilt">-</div>
+                </div>
+                <div class="result-card">
+                    <h3>Azimut ottimale</h3>
+                    <div class="result-value" id="res-azimuth">-</div>
+                </div>
+                <div class="result-card highlight">
+                    <h3>Producibilita' per kWp</h3>
+                    <div class="result-value" id="res-production">-</div>
+                </div>
+            </div>
+
+            <!-- Site Details + Map -->
+            <div class="form-row">
+                <div class="card">
+                    <div class="card-title">
+                        <span class="icon">&#127968;</span>
+                        Dati del sito
+                    </div>
+                    <table class="data-table">
+                        <tr><td>Indirizzo</td><td id="res-address">-</td></tr>
+                        <tr><td>Coordinate</td><td id="res-coords">-</td></tr>
+                        <tr><td>Comune</td><td id="res-municipality">-</td></tr>
+                        <tr><td>Regione</td><td id="res-region">-</td></tr>
+                        <tr><td>Zona climatica</td><td id="res-climate">-</td></tr>
+                        <tr><td>Zona sismica</td><td id="res-seismic">-</td></tr>
+                    </table>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">
+                        <span class="icon">&#127758;</span>
+                        Mappa
+                    </div>
+                    <div id="map"></div>
+                </div>
+            </div>
+
+            <!-- Monthly Chart -->
+            <div class="card">
+                <div class="card-title">
+                    <span class="icon">&#128200;</span>
+                    Irraggiamento mensile
+                </div>
+                <div class="chart-container">
+                    <canvas id="monthly-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Next step -->
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="switchTab('tab-design')">
+                    Procedi al dimensionamento &#8594;
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== TAB 2: DIMENSIONAMENTO ==================== -->
+    <div id="tab-design" class="tab-panel">
+        <div class="card">
+            <div class="card-title">
+                <span class="icon">&#9889;</span>
+                Dimensionamento impianto
+            </div>
+            <p style="color: var(--text-light); margin-bottom: 20px;">
+                Inserisci i dati di consumo e tetto per dimensionare l'impianto ottimale.
+            </p>
+
+            <div class="form-group">
+                <label class="form-label" for="design-address">Indirizzo</label>
+                <input type="text" id="design-address" class="form-input"
+                       placeholder="Es. Via Roma 1, 20121 Milano MI">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="design-consumption">Consumo annuo (kWh)</label>
+                    <input type="number" id="design-consumption" class="form-input"
+                           placeholder="Es. 4500" min="100" step="100">
+                    <p class="form-hint">Dalla bolletta elettrica annuale</p>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="design-roof-area">Area tetto disponibile (m&sup2;)</label>
+                    <input type="number" id="design-roof-area" class="form-input"
+                           placeholder="Es. 40" min="2" step="1">
+                    <p class="form-hint">Superficie utilizzabile per i pannelli</p>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="design-tilt">Inclinazione tetto (opzionale)</label>
+                    <input type="number" id="design-tilt" class="form-input"
+                           placeholder="Lascia vuoto per ottimale" min="0" max="90" step="1">
+                    <p class="form-hint">Gradi, vuoto = angolo ottimale PVGIS</p>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="design-azimuth">Azimut tetto (opzionale)</label>
+                    <input type="number" id="design-azimuth" class="form-input"
+                           placeholder="Lascia vuoto per ottimale" min="-180" max="180" step="1">
+                    <p class="form-hint">Gradi, 0=Sud, -90=Est, 90=Ovest</p>
+                </div>
+            </div>
+
+            <div id="design-error" class="error-msg"></div>
+
+            <button id="design-btn" class="btn btn-primary" onclick="designSystem()">
+                &#9889; Dimensiona impianto
+            </button>
+        </div>
+
+        <!-- Spinner -->
+        <div id="design-spinner" class="spinner">
+            <div class="spinner-circle"></div>
+            <p class="spinner-text">Dimensionamento in corso...</p>
+        </div>
+
+        <!-- Design Results -->
+        <div id="design-results" style="display: none;">
+            <!-- KPIs -->
+            <div class="results-grid" style="margin-bottom: 20px;">
+                <div class="result-card highlight">
+                    <h3>Potenza impianto</h3>
+                    <div class="result-value" id="des-kwp">-</div>
+                </div>
+                <div class="result-card">
+                    <h3>Numero moduli</h3>
+                    <div class="result-value" id="des-panels">-</div>
+                </div>
+                <div class="result-card">
+                    <h3>Produzione annua</h3>
+                    <div class="result-value" id="des-production">-</div>
+                </div>
+                <div class="result-card">
+                    <h3>Autoconsumo</h3>
+                    <div class="result-value" id="des-selfcons">-</div>
+                </div>
+            </div>
+
+            <!-- Components -->
+            <div class="form-row">
+                <div class="card">
+                    <div class="card-title">
+                        <span class="icon">&#128268;</span>
+                        Componenti
+                    </div>
+                    <table class="data-table">
+                        <tr><td>Modulo FV</td><td id="des-module">-</td></tr>
+                        <tr id="des-inverter-row"><td>Inverter</td><td id="des-inverter">-</td></tr>
+                        <tr><td>Performance Ratio</td><td>0.80</td></tr>
+                    </table>
+                </div>
+
+                <!-- Economics -->
+                <div class="card">
+                    <div class="card-title">
+                        <span class="icon">&#128176;</span>
+                        Analisi economica
+                    </div>
+                    <table class="data-table">
+                        <tr><td>LCOE</td><td id="des-lcoe">-</td></tr>
+                        <tr><td>Incentivo</td><td id="des-incentive">-</td></tr>
+                        <tr><td>Valore incentivi (25a)</td><td id="des-incentive-val">-</td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Economics KPIs -->
+            <div class="results-grid" style="margin-bottom: 20px;">
+                <div class="result-card">
+                    <h3>Costo totale</h3>
+                    <div class="result-value" id="des-cost">-</div>
+                </div>
+                <div class="result-card highlight">
+                    <h3>Risparmio annuo</h3>
+                    <div class="result-value" id="des-savings">-</div>
+                </div>
+                <div class="result-card">
+                    <h3>Tempo di rientro</h3>
+                    <div class="result-value" id="des-payback">-</div>
+                </div>
+                <div class="result-card highlight">
+                    <h3>ROI 25 anni</h3>
+                    <div class="result-value" id="des-roi">-</div>
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <div id="des-notes-section" class="card" style="display: none;">
+                <div class="card-title">
+                    <span class="icon">&#128221;</span>
+                    Note
+                </div>
+                <ul class="notes-list" id="des-notes"></ul>
+            </div>
+
+            <!-- Next step -->
+            <div style="text-align: center; margin-top: 20px;">
+                <button class="btn btn-secondary" onclick="switchTab('tab-generate')">
+                    Genera capitolato &#8594;
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== TAB 3: GENERA DOCUMENTO ==================== -->
+    <div id="tab-generate" class="tab-panel">
+        <div class="card">
+            <div class="card-title">
+                <span class="icon">&#128196;</span>
+                Genera Capitolato Tecnico
+            </div>
+            <p style="color: var(--text-light); margin-bottom: 24px;">
+                Genera il capitolato tecnico completo in formato PDF o DOCX, oppure visualizza l'anteprima.
+            </p>
+
+            <div id="generate-error" class="error-msg"></div>
+
+            <div class="btn-group">
+                <button class="btn btn-primary" onclick="generateDocument('pdf')">
+                    &#128196; Scarica PDF
+                </button>
+                <button class="btn btn-outline" onclick="generateDocument('docx')">
+                    &#128196; Scarica DOCX
+                </button>
+                <button class="btn btn-secondary" onclick="previewDocument()">
+                    &#128065; Anteprima
+                </button>
+            </div>
+        </div>
+
+        <!-- Spinner -->
+        <div id="generate-spinner" class="spinner">
+            <div class="spinner-circle"></div>
+            <p class="spinner-text">Generazione documento...</p>
+        </div>
+    </div>
+
+</div>
+
+<!-- Preview Modal -->
+<div id="preview-modal" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Anteprima Capitolato Tecnico</h3>
+            <button class="modal-close" onclick="closePreview()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <iframe id="preview-iframe"></iframe>
+        </div>
+    </div>
+</div>
+
+<!-- Footer -->
+<footer class="footer">
+    SolarSpec v0.1.0 &mdash; Generatore intelligente di capitolati tecnici per impianti fotovoltaici in Italia
+</footer>
+
+<!-- Scripts: load CDNs async, app.js always loads -->
+<script src="/static/app.js"></script>
+<script>
+// Load Leaflet and Chart.js dynamically (non-blocking)
+function loadScript(src, check) {
+    return new Promise((resolve) => {
+        if (check && check()) { resolve(true); return; }
+        const s = document.createElement('script');
+        s.src = src;
+        s.onload = () => resolve(true);
+        s.onerror = () => { console.warn('CDN non raggiungibile: ' + src); resolve(false); };
+        document.body.appendChild(s);
+    });
+}
+loadScript('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', () => typeof L !== 'undefined');
+loadScript('https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js', () => typeof Chart !== 'undefined');
+</script>
+
+</body>
+</html>
