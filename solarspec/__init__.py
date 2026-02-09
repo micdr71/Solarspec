@@ -95,11 +95,27 @@ class SolarSpec:
             roof_azimuth=roof_azimuth,
         )
 
+    def generate_narrative(self, design: SystemDesign) -> dict[str, str]:
+        """Generate AI-powered technical narrative for a system design.
+
+        Requires SOLARSPEC_ANTHROPIC_API_KEY environment variable.
+
+        Args:
+            design: A SystemDesign from the design() method.
+
+        Returns:
+            Dict of section name -> narrative text. Empty if AI unavailable.
+        """
+        from solarspec.core.narrative import generate_narrative
+
+        return generate_narrative(design=design, settings=self.settings)
+
     def generate_document(
         self,
         design: SystemDesign,
         output_path: str,
         format: str = "docx",
+        narrative: dict[str, str] | None = None,
     ) -> str:
         """Generate the technical specification document.
 
@@ -107,10 +123,15 @@ class SolarSpec:
             design: A SystemDesign from the design() method.
             output_path: Where to save the document.
             format: Output format ('docx' or 'pdf').
+            narrative: Optional AI narrative dict (from generate_narrative).
+                If None and API key is configured, narrative is auto-generated.
 
         Returns:
             Path to the generated document.
         """
         from solarspec.generators.document import generate
 
-        return generate(design=design, output_path=output_path, format=format)
+        if narrative is None and self.settings.anthropic_api_key:
+            narrative = self.generate_narrative(design)
+
+        return generate(design=design, output_path=output_path, format=format, narrative=narrative)

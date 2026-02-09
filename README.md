@@ -34,7 +34,7 @@ Indirizzo --> Geocoding --> Analisi solare PVGIS --> Zona climatica/sismica
 | **Doc Generator** | Generazione capitolato tecnico in DOCX e PDF (via WeasyPrint) | Completo |
 | **Web Interface** | Interfaccia grafica web con FastAPI, 3 step interattivi, mappa, grafici | Completo |
 | **PV Catalog** | Database prodotti: 6 moduli (LONGi, Trina, JA Solar, SunPower, Canadian Solar, REC) + 10 inverter (Huawei, SMA, Fronius, SolarEdge) | Completo |
-| **AI Layer** | Narrativa tecnica via Claude API | Pianificato |
+| **AI Layer** | Narrativa tecnica via Claude API (Anthropic), 6 sezioni generate automaticamente | Completo |
 
 ---
 
@@ -131,6 +131,7 @@ Con il server avviato (`solarspec serve`), sono disponibili i seguenti endpoint:
 | POST | `/api/analyze` | Analisi sito (geocoding + PVGIS) |
 | POST | `/api/design` | Dimensionamento impianto completo |
 | POST | `/api/generate` | Genera e scarica capitolato PDF/DOCX |
+| POST | `/api/narrative` | Genera narrativa tecnica AI (richiede API key) |
 | POST | `/api/preview` | Anteprima HTML del capitolato |
 | GET | `/docs` | Documentazione interattiva Swagger |
 
@@ -156,7 +157,8 @@ solarspec/
 │   ├── cli.py               # CLI Typer: analyze, generate, serve, version
 │   ├── core/
 │   │   ├── geo.py           # Geocoding Nominatim + DB zone climatiche/sismiche
-│   │   └── solar.py         # Integrazione PVGIS (irraggiamento, angoli ottimali)
+│   │   ├── solar.py         # Integrazione PVGIS (irraggiamento, angoli ottimali)
+│   │   └── narrative.py     # Narrativa tecnica AI via Claude API (Anthropic)
 │   ├── generators/
 │   │   ├── designer.py      # Dimensionamento, selezione inverter, analisi economica
 │   │   └── document.py      # Generazione DOCX (python-docx) e PDF (WeasyPrint)
@@ -176,7 +178,8 @@ solarspec/
 │   ├── test_core.py         # Test modelli e designer
 │   ├── test_geo.py          # Test zone climatiche e sismiche
 │   ├── test_designer.py     # Test catalogo prodotti e selezione inverter
-│   └── test_api.py          # Test endpoint API
+│   ├── test_api.py          # Test endpoint API
+│   └── test_narrative.py    # Test narrativa AI (mock API)
 ├── examples/
 │   └── quick_analysis.py    # Script esempio
 ├── docs/
@@ -198,15 +201,17 @@ solarspec/
 | CLI | Typer + Rich |
 | API web | FastAPI + Uvicorn |
 | Frontend | HTML/CSS/JS (Leaflet per mappe, Chart.js per grafici) |
+| AI narrativa | Anthropic Claude API (opzionale) |
 | Test | Pytest |
 | Linting | Ruff |
 
-### API esterne utilizzate (gratuite)
+### API esterne utilizzate
 
-| API | Uso |
-|-----|-----|
-| [PVGIS (EU JRC)](https://re.jrc.ec.europa.eu/pvg_tools/en/) | Dati irraggiamento solare, angoli ottimali, producibilita' |
-| [Nominatim (OpenStreetMap)](https://nominatim.org/) | Geocoding indirizzi italiani |
+| API | Uso | Costo |
+|-----|-----|-------|
+| [PVGIS (EU JRC)](https://re.jrc.ec.europa.eu/pvg_tools/en/) | Dati irraggiamento solare, angoli ottimali, producibilita' | Gratuita |
+| [Nominatim (OpenStreetMap)](https://nominatim.org/) | Geocoding indirizzi italiani | Gratuita |
+| [Anthropic Claude API](https://docs.anthropic.com/) | Narrativa tecnica AI per capitolati | A consumo (opzionale) |
 
 ---
 
@@ -249,6 +254,44 @@ Il dimensionamento include un'analisi economica completa:
 
 ---
 
+## AI Layer (Narrativa Tecnica)
+
+SolarSpec integra l'API Claude di Anthropic per generare **narrativa tecnica professionale** in italiano, inserita automaticamente nel capitolato. L'AI produce 6 sezioni discorsive:
+
+1. **Premessa** -- scopo del capitolato e contesto dell'installazione
+2. **Analisi del sito** -- caratteristiche climatiche, sismiche e implicazioni progettuali
+3. **Risorsa solare** -- commento sull'irraggiamento e confronto con la media italiana
+4. **Dimensionamento** -- motivazioni tecniche per la scelta dei componenti
+5. **Analisi economica** -- commento sulla convenienza e gli incentivi
+6. **Conclusioni** -- sintesi e raccomandazioni tecniche
+
+### Configurazione
+
+```bash
+# Imposta la chiave API Anthropic
+export SOLARSPEC_ANTHROPIC_API_KEY="sk-ant-..."
+
+# Opzionale: cambia modello (default: claude-sonnet-4-5-20250929)
+export SOLARSPEC_ANTHROPIC_MODEL="claude-sonnet-4-5-20250929"
+```
+
+La narrativa AI e' **opzionale**: senza chiave API, SolarSpec genera documenti con solo i dati tecnici tabulari.
+
+```python
+# Uso via Python
+spec = SolarSpec()
+design = spec.design(address="Via Roma 1, Milano", annual_consumption_kwh=4500, roof_area_m2=40)
+
+# Genera narrativa separatamente
+narrative = spec.generate_narrative(design)
+print(narrative["premessa"])
+
+# Oppure includi automaticamente nel documento
+spec.generate_document(design=design, output_path="capitolato.pdf", format="pdf")
+```
+
+---
+
 ## Normativa di riferimento
 
 SolarSpec genera documentazione con riferimenti a:
@@ -265,7 +308,7 @@ SolarSpec genera documentazione con riferimenti a:
 ## Test
 
 ```bash
-# Esegui tutti i test (24 test)
+# Esegui tutti i test (31 test)
 pytest
 
 # Con coverage
@@ -288,7 +331,6 @@ I contributi sono benvenuti! Consulta [CONTRIBUTING.md](docs/CONTRIBUTING.md) pe
 - Aggiungere altri prodotti al catalogo PV
 - Analisi ombreggiamenti
 - Integrazione catasto per dati edificio
-- Layer AI per narrativa tecnica automatica
 - Deploy cloud (Railway, Render, Fly.io)
 
 ---

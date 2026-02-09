@@ -2,15 +2,22 @@
 
 from __future__ import annotations
 
+import html as html_module
 from datetime import date
 
 from solarspec.models import SystemDesign
+
+
+def _escape_html(text: str) -> str:
+    """Escape text for safe HTML insertion, preserving newlines as <br>."""
+    return html_module.escape(text).replace("\n", "<br>")
 
 
 def generate(
     design: SystemDesign,
     output_path: str,
     format: str = "docx",
+    narrative: dict[str, str] | None = None,
 ) -> str:
     """Generate a technical specification document.
 
@@ -18,22 +25,22 @@ def generate(
         design: Complete system design.
         output_path: Output file path.
         format: Output format ('docx' or 'pdf').
+        narrative: Optional AI-generated narrative sections dict.
 
     Returns:
         Path to the generated document.
-
-    Raises:
-        NotImplementedError: Document generation is under development.
     """
     if format == "docx":
-        return _generate_docx(design, output_path)
+        return _generate_docx(design, output_path, narrative=narrative)
     elif format == "pdf":
-        return _generate_pdf(design, output_path)
+        return _generate_pdf(design, output_path, narrative=narrative)
     else:
         raise ValueError(f"Formato non supportato: {format}. Usa 'docx' o 'pdf'.")
 
 
-def _generate_docx(design: SystemDesign, output_path: str) -> str:
+def _generate_docx(
+    design: SystemDesign, output_path: str, narrative: dict[str, str] | None = None
+) -> str:
     """Generate a DOCX technical specification."""
     try:
         from docx import Document
@@ -41,13 +48,21 @@ def _generate_docx(design: SystemDesign, output_path: str) -> str:
     except ImportError:
         raise ImportError("Installa python-docx: pip install python-docx")
 
+    narr = narrative or {}
     doc = Document()
 
     # Title
     doc.add_heading("Capitolato Tecnico — Impianto Fotovoltaico", level=0)
 
+    # Premessa (AI narrative)
+    if narr.get("premessa"):
+        doc.add_heading("Premessa", level=1)
+        doc.add_paragraph(narr["premessa"])
+
     # Site info
     doc.add_heading("1. Dati del sito", level=1)
+    if narr.get("analisi_sito"):
+        doc.add_paragraph(narr["analisi_sito"])
     doc.add_paragraph(f"Indirizzo: {design.site.address}")
     doc.add_paragraph(
         f"Coordinate: {design.site.latitude:.5f}°N, {design.site.longitude:.5f}°E"
@@ -58,6 +73,8 @@ def _generate_docx(design: SystemDesign, output_path: str) -> str:
 
     # Solar data
     doc.add_heading("2. Analisi solare", level=1)
+    if narr.get("risorsa_solare"):
+        doc.add_paragraph(narr["risorsa_solare"])
     doc.add_paragraph(
         f"Irraggiamento annuo (piano ottimale): {design.solar_data.annual_irradiation} kWh/m²/anno"
     )
@@ -69,6 +86,8 @@ def _generate_docx(design: SystemDesign, output_path: str) -> str:
 
     # System design
     doc.add_heading("3. Dimensionamento impianto", level=1)
+    if narr.get("dimensionamento"):
+        doc.add_paragraph(narr["dimensionamento"])
     doc.add_paragraph(f"Potenza nominale: {design.system_size_kwp} kWp")
     doc.add_paragraph(f"Numero moduli: {design.num_panels}")
     if design.module:
@@ -88,6 +107,8 @@ def _generate_docx(design: SystemDesign, output_path: str) -> str:
     # Economics
     if design.economics:
         doc.add_heading("4. Analisi economica", level=1)
+        if narr.get("analisi_economica"):
+            doc.add_paragraph(narr["analisi_economica"])
         doc.add_paragraph(f"Costo totale stimato: €{design.economics.total_cost_eur:,.2f}")
         doc.add_paragraph(f"Costo per kWp: €{design.economics.cost_per_kwp:,.2f}/kWp")
         doc.add_paragraph(f"Risparmio annuo stimato: €{design.economics.annual_savings_eur:,.2f}")
@@ -113,16 +134,22 @@ def _generate_docx(design: SystemDesign, output_path: str) -> str:
     for norm in norms:
         doc.add_paragraph(f"• {norm}")
 
+    # Conclusioni (AI narrative)
+    if narr.get("conclusioni"):
+        doc.add_heading("7. Conclusioni e raccomandazioni", level=1)
+        doc.add_paragraph(narr["conclusioni"])
+
     # Footer
     doc.add_paragraph("")
-    doc.add_paragraph("Documento generato con SolarSpec — https://github.com/YOUR_USERNAME/solarspec")
+    doc.add_paragraph("Documento generato con SolarSpec — https://github.com/micdr71/Solarspec")
 
     doc.save(output_path)
     return output_path
 
 
-def _build_html(design: SystemDesign) -> str:
+def _build_html(design: SystemDesign, narrative: dict[str, str] | None = None) -> str:
     """Build an HTML representation of the technical specification."""
+    narr = narrative or {}
     today = date.today().strftime("%d/%m/%Y")
     monthly_labels = [
         "Gen", "Feb", "Mar", "Apr", "Mag", "Giu",
@@ -148,6 +175,7 @@ def _build_html(design: SystemDesign) -> str:
     if design.economics:
         economics_html = f"""
         <h2>4. Analisi economica</h2>
+        {analisi_econ_narr}
         <table>
             <tr><td>Costo totale stimato</td><td>&euro;{design.economics.total_cost_eur:,.2f}</td></tr>
             <tr><td>Costo per kWp</td><td>&euro;{design.economics.cost_per_kwp:,.2f}/kWp</td></tr>
@@ -170,6 +198,30 @@ def _build_html(design: SystemDesign) -> str:
         label = monthly_labels[i] if i < len(monthly_labels) else str(i + 1)
         monthly_rows += f"<tr><td>{label}</td><td>{val} kWh/m&sup2;</td></tr>"
 
+    premessa_html = ""
+    if narr.get("premessa"):
+        premessa_html = f'<h2>Premessa</h2><p class="narrative">{_escape_html(narr["premessa"])}</p>'
+
+    analisi_sito_narr = ""
+    if narr.get("analisi_sito"):
+        analisi_sito_narr = f'<p class="narrative">{_escape_html(narr["analisi_sito"])}</p>'
+
+    risorsa_solare_narr = ""
+    if narr.get("risorsa_solare"):
+        risorsa_solare_narr = f'<p class="narrative">{_escape_html(narr["risorsa_solare"])}</p>'
+
+    dimensionamento_narr = ""
+    if narr.get("dimensionamento"):
+        dimensionamento_narr = f'<p class="narrative">{_escape_html(narr["dimensionamento"])}</p>'
+
+    analisi_econ_narr = ""
+    if narr.get("analisi_economica"):
+        analisi_econ_narr = f'<p class="narrative">{_escape_html(narr["analisi_economica"])}</p>'
+
+    conclusioni_html = ""
+    if narr.get("conclusioni"):
+        conclusioni_html = f'<h2>7. Conclusioni e raccomandazioni</h2><p class="narrative">{_escape_html(narr["conclusioni"])}</p>'
+
     return f"""<!DOCTYPE html>
 <html lang="it">
 <head>
@@ -188,6 +240,7 @@ def _build_html(design: SystemDesign) -> str:
     ul {{ padding-left: 20px; }}
     li {{ margin-bottom: 5px; }}
     .norms {{ background: #f8f9fa; padding: 15px; border-radius: 5px; }}
+    .narrative {{ background: #f0f7ff; padding: 14px 18px; border-left: 4px solid #2980b9; border-radius: 0 5px 5px 0; margin: 12px 0; font-style: italic; color: #2c3e50; }}
 </style>
 </head>
 <body>
@@ -196,7 +249,10 @@ def _build_html(design: SystemDesign) -> str:
     <p class="date">Data: {today}</p>
 </div>
 
+{premessa_html}
+
 <h2>1. Dati del sito</h2>
+{analisi_sito_narr}
 <table>
     <tr><td>Indirizzo</td><td>{design.site.address}</td></tr>
     <tr><td>Coordinate</td><td>{design.site.latitude:.5f}&deg;N, {design.site.longitude:.5f}&deg;E</td></tr>
@@ -207,6 +263,7 @@ def _build_html(design: SystemDesign) -> str:
 </table>
 
 <h2>2. Analisi solare</h2>
+{risorsa_solare_narr}
 <table>
     <tr><td>Irraggiamento annuo</td><td>{design.solar_data.annual_irradiation} kWh/m&sup2;/anno</td></tr>
     <tr><td>Inclinazione ottimale</td><td>{design.solar_data.optimal_tilt}&deg;</td></tr>
@@ -216,6 +273,7 @@ def _build_html(design: SystemDesign) -> str:
 {"<h3>Irraggiamento mensile</h3><table>" + monthly_rows + "</table>" if monthly_rows else ""}
 
 <h2>3. Dimensionamento impianto</h2>
+{dimensionamento_narr}
 <table>
     <tr><td>Potenza nominale</td><td>{design.system_size_kwp} kWp</td></tr>
     <tr><td>Numero moduli</td><td>{design.num_panels}</td></tr>
@@ -241,6 +299,8 @@ def _build_html(design: SystemDesign) -> str:
 </ul>
 </div>
 
+{conclusioni_html}
+
 <div class="footer">
     <p>Documento generato con SolarSpec v0.1.0</p>
 </div>
@@ -248,13 +308,15 @@ def _build_html(design: SystemDesign) -> str:
 </html>"""
 
 
-def _generate_pdf(design: SystemDesign, output_path: str) -> str:
+def _generate_pdf(
+    design: SystemDesign, output_path: str, narrative: dict[str, str] | None = None
+) -> str:
     """Generate a PDF technical specification using WeasyPrint."""
     try:
         from weasyprint import HTML
     except ImportError:
         raise ImportError("Installa weasyprint: pip install weasyprint")
 
-    html_content = _build_html(design)
+    html_content = _build_html(design, narrative=narrative)
     HTML(string=html_content).write_pdf(output_path)
     return output_path

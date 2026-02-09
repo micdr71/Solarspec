@@ -377,6 +377,26 @@ async def generate_document(req: GenerateRequest):
         raise HTTPException(status_code=500, detail=f"Errore nella generazione: {e}")
 
 
+@app.post("/api/narrative")
+async def narrative(req: DesignRequest):
+    """Generate AI-powered technical narrative for a system design."""
+    try:
+        spec = SolarSpec()
+        result = spec.design(
+            address=req.address,
+            annual_consumption_kwh=req.annual_consumption_kwh,
+            roof_area_m2=req.roof_area_m2,
+            roof_tilt=req.roof_tilt,
+            roof_azimuth=req.roof_azimuth,
+        )
+        narr = spec.generate_narrative(result)
+        return {"narrative": narr, "available": bool(narr)}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Errore nella generazione narrativa: {e}")
+
+
 @app.post("/api/preview")
 async def preview_document(req: DesignRequest):
     """Generate an HTML preview of the technical specification."""
@@ -389,7 +409,8 @@ async def preview_document(req: DesignRequest):
             roof_tilt=req.roof_tilt,
             roof_azimuth=req.roof_azimuth,
         )
-        html = _build_html(result)
+        narr = spec.generate_narrative(result)
+        html = _build_html(result, narrative=narr or None)
         return {"html": html}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

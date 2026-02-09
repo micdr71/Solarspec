@@ -30,6 +30,6 @@ class Settings(BaseSettings):
     )
     default_performance_ratio: float = Field(default=0.80, description="Default PR")
 
-    # AI (optional)
+    # AI (optional — set SOLARSPEC_ANTHROPIC_API_KEY to enable)
     anthropic_api_key: str = ""
-    anthropic_model: str = "claude-sonnet-4-20250514"
+    anthropic_model: str = "claude-sonnet-4-5-20250929"
