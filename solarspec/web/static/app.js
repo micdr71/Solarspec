@@ -142,6 +142,14 @@ function initMap(lat, lng, label) {
     const mapDiv = document.getElementById('map');
     if (!mapDiv) return;
 
+    // Leaflet might not be loaded yet (CDN async), retry
+    if (typeof L === 'undefined') {
+        mapDiv.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:#7f8c8d;font-size:0.9em;">
+            <p>Coordinate: ${lat.toFixed(5)}°N, ${lng.toFixed(5)}°E</p></div>`;
+        setTimeout(() => initMap(lat, lng, label), 1500);
+        return;
+    }
+
     if (map) {
         map.remove();
     }
@@ -158,6 +166,28 @@ function initMap(lat, lng, label) {
 function initMonthlyChart(monthlyData) {
     const ctx = document.getElementById('monthly-chart');
     if (!ctx) return;
+
+    // Chart.js might not be loaded yet (CDN async), retry
+    if (typeof Chart === 'undefined') {
+        const parent = ctx.parentElement;
+        if (parent) {
+            const labels = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+            parent.innerHTML = '<table class="data-table" style="font-size:0.85em">' +
+                monthlyData.map((v, i) => `<tr><td>${labels[i] || ''}</td><td>${v} kWh/m²</td></tr>`).join('') +
+                '</table>';
+        }
+        setTimeout(() => {
+            if (typeof Chart !== 'undefined') {
+                // Re-create canvas and render chart
+                const container = document.querySelector('.chart-container');
+                if (container) {
+                    container.innerHTML = '<canvas id="monthly-chart"></canvas>';
+                    initMonthlyChart(monthlyData);
+                }
+            }
+        }, 2000);
+        return;
+    }
 
     const labels = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
 

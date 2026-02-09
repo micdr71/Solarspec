@@ -5,16 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SolarSpec — Generatore Capitolati Tecnici FV</title>
 
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-    <!-- Leaflet CSS (map) -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
-    <!-- App CSS -->
+    <!-- App CSS (local, loads immediately) -->
     <link rel="stylesheet" href="/static/style.css">
+
+    <!-- External CSS loaded async (non-blocking) -->
+    <link rel="preload" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" as="style" onload="this.onload=null;this.rel='stylesheet'" onerror="">
+    <noscript><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"></noscript>
 </head>
 <body>
 
@@ -352,10 +348,23 @@
     SolarSpec v0.1.0 &mdash; Generatore intelligente di capitolati tecnici per impianti fotovoltaici in Italia
 </footer>
 
-<!-- Scripts -->
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<!-- Scripts: load CDNs async, app.js always loads -->
 <script src="/static/app.js"></script>
+<script>
+// Load Leaflet and Chart.js dynamically (non-blocking)
+function loadScript(src, check) {
+    return new Promise((resolve) => {
+        if (check && check()) { resolve(true); return; }
+        const s = document.createElement('script');
+        s.src = src;
+        s.onload = () => resolve(true);
+        s.onerror = () => { console.warn('CDN non raggiungibile: ' + src); resolve(false); };
+        document.body.appendChild(s);
+    });
+}
+loadScript('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', () => typeof L !== 'undefined');
+loadScript('https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js', () => typeof Chart !== 'undefined');
+</script>
 
 </body>
 </html>
