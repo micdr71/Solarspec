@@ -345,4 +345,4 @@ Distribuito sotto licenza MIT. Vedi [LICENSE](LICENSE) per dettagli.
 
 Creato da **Michele** -- Ingegnere edile, imprenditore nel settore delle energie rinnovabili.
 
-- [LuceViva](https://www.luceviva.org) -- Marketplace B2B per il fotovoltaico in Italia
+- [LuceViva](http://www.luceviva.org) -- Marketplace B2B per il fotovoltaico in Italia
