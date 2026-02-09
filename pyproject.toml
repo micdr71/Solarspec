@@ -1,0 +1,83 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "solarspec"
+version = "0.1.0"
+description = "Generatore intelligente di capitolati tecnici per impianti fotovoltaici in Italia"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+authors = [
+    { name = "Michele" },
+]
+keywords = ["solar", "photovoltaic", "italy", "specification", "engineering"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Office/Business",
+]
+dependencies = [
+    "pydantic>=2.0",
+    "httpx>=0.27",
+    "pvlib>=0.11",
+    "python-docx>=1.1",
+    "rich>=13.0",
+    "typer>=0.12",
+]
+
+[project.optional-dependencies]
+api = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+]
+pdf = [
+    "weasyprint>=62",
+]
+ai = [
+    "anthropic>=0.40",
+]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=5.0",
+    "ruff>=0.7",
+    "mypy>=1.11",
+    "pre-commit>=4.0",
+]
+all = ["solarspec[api,pdf,ai,dev]"]
+
+[project.scripts]
+solarspec = "solarspec.cli:app"
+
+[project.urls]
+Homepage = "https://github.com/YOUR_USERNAME/solarspec"
+Documentation = "https://github.com/YOUR_USERNAME/solarspec/tree/main/docs"
+Repository = "https://github.com/YOUR_USERNAME/solarspec"
+Issues = "https://github.com/YOUR_USERNAME/solarspec/issues"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "A", "SIM", "TCH"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["solarspec"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
