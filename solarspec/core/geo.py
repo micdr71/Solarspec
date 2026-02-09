@@ -2,10 +2,42 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import httpx
 
 from solarspec.config import Settings
 from solarspec.models import Location
+
+_DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+
+_climate_db: dict[str, str] | None = None
+_seismic_db: dict[str, int] | None = None
+
+
+def _load_climate_db() -> dict[str, str]:
+    global _climate_db
+    if _climate_db is None:
+        path = _DATA_DIR / "climate_zones.json"
+        if path.exists():
+            raw = json.loads(path.read_text(encoding="utf-8"))
+            _climate_db = {k: v for k, v in raw.items() if not k.startswith("_")}
+        else:
+            _climate_db = {}
+    return _climate_db
+
+
+def _load_seismic_db() -> dict[str, int]:
+    global _seismic_db
+    if _seismic_db is None:
+        path = _DATA_DIR / "seismic_zones.json"
+        if path.exists():
+            raw = json.loads(path.read_text(encoding="utf-8"))
+            _seismic_db = {k: int(v) for k, v in raw.items() if not k.startswith("_")}
+        else:
+            _seismic_db = {}
+    return _seismic_db
 
 
 def geocode_address(address: str, settings: Settings | None = None) -> Location:
@@ -57,18 +89,7 @@ def geocode_address(address: str, settings: Settings | None = None) -> Location:
     )
 
 
-# Italian climate zones by degree-day ranges (DPR 412/1993)
-# In production this would be a full database lookup by municipality ISTAT code
-_CLIMATE_ZONE_RANGES = {
-    "A": (0, 600),
-    "B": (601, 900),
-    "C": (901, 1400),
-    "D": (1401, 2100),
-    "E": (2101, 3000),
-    "F": (3001, 9999),
-}
-
-# Simplified region-based climate zone defaults
+# Simplified region-based climate zone defaults (fallback)
 _REGION_CLIMATE_DEFAULTS: dict[str, str] = {
     "Sicilia": "B",
     "Sardegna": "C",
@@ -103,7 +124,12 @@ def get_climate_zone(municipality: str, region: str = "") -> str:
     Returns:
         Climate zone letter (A-F) or empty string if unknown.
     """
-    # TODO: Implement full ISTAT-based lookup from data/climate_zones.json
+    db = _load_climate_db()
+    if municipality in db:
+        return db[municipality]
+    for key, value in db.items():
+        if key.lower() == municipality.lower():
+            return value
     if region in _REGION_CLIMATE_DEFAULTS:
         return _REGION_CLIMATE_DEFAULTS[region]
     return ""
@@ -144,7 +170,12 @@ def get_seismic_zone(municipality: str, region: str = "") -> int:
     Returns:
         Seismic zone (1-4) or 0 if unknown.
     """
-    # TODO: Implement full municipality-based lookup from data/seismic_zones.json
+    db = _load_seismic_db()
+    if municipality in db:
+        return db[municipality]
+    for key, value in db.items():
+        if key.lower() == municipality.lower():
+            return value
     if region in _REGION_SEISMIC_DEFAULTS:
         return _REGION_SEISMIC_DEFAULTS[region]
     return 0

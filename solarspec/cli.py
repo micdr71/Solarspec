@@ -82,6 +82,25 @@ def generate(
 
 
 @app.command()
+def serve(
+    host: str = typer.Option("0.0.0.0", "--host", "-h", help="Host di ascolto"),
+    port: int = typer.Option(8000, "--port", "-p", help="Porta di ascolto"),
+) -> None:
+    """Avvia il server web con interfaccia grafica."""
+    try:
+        import uvicorn
+    except ImportError:
+        console.print("[red]Installa le dipendenze API: pip install solarspec[api][/red]")
+        raise typer.Exit(1)
+
+    console.print(f"\n☀️  SolarSpec Web Server")
+    console.print(f"   Interfaccia: [bold]http://{host}:{port}[/]")
+    console.print(f"   API docs:    [bold]http://{host}:{port}/docs[/]\n")
+
+    uvicorn.run("solarspec.api:app", host=host, port=port, reload=False)
+
+
+@app.command()
 def version() -> None:
     """Mostra la versione di SolarSpec."""
     from solarspec import __version__

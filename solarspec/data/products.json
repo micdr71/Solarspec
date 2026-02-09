@@ -1,0 +1,163 @@
+{
+  "_description": "Catalogo prodotti PV — moduli e inverter di riferimento.",
+  "modules": [
+    {
+      "manufacturer": "LONGi",
+      "model": "Hi-MO 6 LR5-54HTH-440M",
+      "power_wp": 440,
+      "efficiency": 22.3,
+      "area_m2": 1.88,
+      "voc": 41.7,
+      "isc": 13.74,
+      "warranty_years": 25,
+      "degradation_rate": 0.4
+    },
+    {
+      "manufacturer": "JA Solar",
+      "model": "JAM54S31-410/MR",
+      "power_wp": 410,
+      "efficiency": 21.5,
+      "area_m2": 1.83,
+      "voc": 37.2,
+      "isc": 14.03,
+      "warranty_years": 25,
+      "degradation_rate": 0.45
+    },
+    {
+      "manufacturer": "Trina Solar",
+      "model": "Vertex S+ TSM-NEG9R.28 445W",
+      "power_wp": 445,
+      "efficiency": 22.5,
+      "area_m2": 1.88,
+      "voc": 38.8,
+      "isc": 14.6,
+      "warranty_years": 25,
+      "degradation_rate": 0.4
+    },
+    {
+      "manufacturer": "SunPower",
+      "model": "Maxeon 6 AC SPR-MAX6-440-E3-AC",
+      "power_wp": 440,
+      "efficiency": 22.8,
+      "area_m2": 1.87,
+      "voc": 42.1,
+      "isc": 13.5,
+      "warranty_years": 25,
+      "degradation_rate": 0.25
+    },
+    {
+      "manufacturer": "Canadian Solar",
+      "model": "HiHero CS6R-420H-AG",
+      "power_wp": 420,
+      "efficiency": 21.8,
+      "area_m2": 1.84,
+      "voc": 40.5,
+      "isc": 13.42,
+      "warranty_years": 25,
+      "degradation_rate": 0.4
+    },
+    {
+      "manufacturer": "REC",
+      "model": "Alpha Pure-R Series 430W",
+      "power_wp": 430,
+      "efficiency": 22.2,
+      "area_m2": 1.86,
+      "voc": 41.0,
+      "isc": 13.6,
+      "warranty_years": 25,
+      "degradation_rate": 0.25
+    }
+  ],
+  "inverters": [
+    {
+      "manufacturer": "Huawei",
+      "model": "SUN2000-3KTL-L1",
+      "power_kw": 3.0,
+      "max_dc_power_kw": 4.5,
+      "efficiency": 97.7,
+      "mppt_channels": 2,
+      "warranty_years": 10
+    },
+    {
+      "manufacturer": "Huawei",
+      "model": "SUN2000-5KTL-L1",
+      "power_kw": 5.0,
+      "max_dc_power_kw": 7.5,
+      "efficiency": 98.0,
+      "mppt_channels": 2,
+      "warranty_years": 10
+    },
+    {
+      "manufacturer": "Huawei",
+      "model": "SUN2000-6KTL-L1",
+      "power_kw": 6.0,
+      "max_dc_power_kw": 9.0,
+      "efficiency": 98.0,
+      "mppt_channels": 2,
+      "warranty_years": 10
+    },
+    {
+      "manufacturer": "Huawei",
+      "model": "SUN2000-10KTL-M1",
+      "power_kw": 10.0,
+      "max_dc_power_kw": 15.0,
+      "efficiency": 98.4,
+      "mppt_channels": 2,
+      "warranty_years": 10
+    },
+    {
+      "manufacturer": "SMA",
+      "model": "Sunny Tripower 5.0",
+      "power_kw": 5.0,
+      "max_dc_power_kw": 7.5,
+      "efficiency": 97.6,
+      "mppt_channels": 2,
+      "warranty_years": 10
+    },
+    {
+      "manufacturer": "SMA",
+      "model": "Sunny Tripower 8.0",
+      "power_kw": 8.0,
+      "max_dc_power_kw": 12.0,
+      "efficiency": 97.8,
+      "mppt_channels": 2,
+      "warranty_years": 10
+    },
+    {
+      "manufacturer": "Fronius",
+      "model": "Primo GEN24 3.0 Plus",
+      "power_kw": 3.0,
+      "max_dc_power_kw": 4.5,
+      "efficiency": 97.5,
+      "mppt_channels": 2,
+      "warranty_years": 10
+    },
+    {
+      "manufacturer": "Fronius",
+      "model": "Primo GEN24 6.0 Plus",
+      "power_kw": 6.0,
+      "max_dc_power_kw": 9.0,
+      "efficiency": 97.8,
+      "mppt_channels": 2,
+      "warranty_years": 10
+    },
+    {
+      "manufacturer": "SolarEdge",
+      "model": "SE5000H-IT",
+      "power_kw": 5.0,
+      "max_dc_power_kw": 7.5,
+      "efficiency": 99.5,
+      "mppt_channels": 1,
+      "warranty_years": 12
+    },
+    {
+      "manufacturer": "SolarEdge",
+      "model": "SE10000H-IT",
+      "power_kw": 10.0,
+      "max_dc_power_kw": 15.0,
+      "efficiency": 99.5,
+      "mppt_channels": 1,
+      "warranty_years": 12
+    }
+  ]
+}
