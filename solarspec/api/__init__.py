@@ -13,6 +13,14 @@ from pydantic import BaseModel, Field
 from solarspec import SolarSpec
 from solarspec.generators.document import _build_html
 
+
+def _make_spec(api_key: str | None = None) -> SolarSpec:
+    """Create a SolarSpec instance, optionally with a runtime API key."""
+    spec = SolarSpec()
+    if api_key:
+        spec.settings = spec.settings.model_copy(update={"anthropic_api_key": api_key})
+    return spec
+
 app = FastAPI(
     title="SolarSpec API",
     description="API per la generazione di capitolati tecnici per impianti fotovoltaici in Italia",
@@ -40,6 +48,7 @@ class DesignRequest(BaseModel):
     roof_area_m2: float = Field(description="Area tetto disponibile in m2")
     roof_tilt: float | None = Field(default=None, description="Inclinazione tetto (gradi)")
     roof_azimuth: float | None = Field(default=None, description="Azimut tetto (gradi, 0=Sud)")
+    api_key: str | None = Field(default=None, description="Chiave API Anthropic (opzionale)")
 
 
 class GenerateRequest(BaseModel):
@@ -49,6 +58,7 @@ class GenerateRequest(BaseModel):
     roof_tilt: float | None = None
     roof_azimuth: float | None = None
     format: str = Field(default="pdf", description="Formato output: 'docx' o 'pdf'")
+    api_key: str | None = Field(default=None, description="Chiave API Anthropic (opzionale)")
 
 
 # --- Inline HTML page (no static files needed) ---
@@ -248,6 +258,21 @@ def _render_inline_html(css: str, js: str) -> str:
     <!-- TAB 3: GENERA DOCUMENTO -->
     <div id="tab-generate" class="tab-panel">
         <div class="card">
+            <div class="card-title"><span class="icon">&#129302;</span> AI Narrativa (opzionale)</div>
+            <p style="color:var(--text-light);margin-bottom:16px;">
+                Inserisci la tua chiave API Anthropic per arricchire il capitolato con narrativa tecnica professionale generata dall'AI.
+            </p>
+            <div class="form-group" style="margin-bottom:12px;">
+                <label class="form-label" for="api-key">Chiave API Anthropic</label>
+                <div class="api-key-wrapper">
+                    <input type="password" id="api-key" class="form-input" placeholder="sk-ant-..." autocomplete="off">
+                    <button type="button" class="btn-toggle-key" onclick="toggleApiKey()">Mostra</button>
+                </div>
+                <p class="form-hint">La chiave viene usata solo per questa sessione e non viene salvata. <a href="https://console.anthropic.com/" target="_blank" rel="noopener">Ottieni una chiave</a></p>
+            </div>
+            <div id="ai-status" class="ai-badge inactive">Narrativa AI non attiva</div>
+        </div>
+        <div class="card">
             <div class="card-title"><span class="icon">&#128196;</span> Genera Capitolato Tecnico</div>
             <p style="color:var(--text-light);margin-bottom:24px;">
                 Genera il capitolato tecnico completo in formato PDF o DOCX, oppure visualizza l'anteprima.
@@ -345,7 +370,7 @@ async def design(req: DesignRequest):
 async def generate_document(req: GenerateRequest):
     """Generate and download a technical specification document."""
     try:
-        spec = SolarSpec()
+        spec = _make_spec(req.api_key)
         result = spec.design(
             address=req.address,
             annual_consumption_kwh=req.annual_consumption_kwh,
@@ -377,11 +402,11 @@ async def generate_document(req: GenerateRequest):
         raise HTTPException(status_code=500, detail=f"Errore nella generazione: {e}")
 
 
-@app.post("/api/preview")
-async def preview_document(req: DesignRequest):
-    """Generate an HTML preview of the technical specification."""
+@app.post("/api/narrative")
+async def narrative(req: DesignRequest):
+    """Generate AI-powered technical narrative for a system design."""
     try:
-        spec = SolarSpec()
+        spec = _make_spec(req.api_key)
         result = spec.design(
             address=req.address,
             annual_consumption_kwh=req.annual_consumption_kwh,
@@ -389,7 +414,28 @@ async def preview_document(req: DesignRequest):
             roof_tilt=req.roof_tilt,
             roof_azimuth=req.roof_azimuth,
         )
-        html = _build_html(result)
+        narr = spec.generate_narrative(result)
+        return {"narrative": narr, "available": bool(narr)}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Errore nella generazione narrativa: {e}")
+
+
+@app.post("/api/preview")
+async def preview_document(req: DesignRequest):
+    """Generate an HTML preview of the technical specification."""
+    try:
+        spec = _make_spec(req.api_key)
+        result = spec.design(
+            address=req.address,
+            annual_consumption_kwh=req.annual_consumption_kwh,
+            roof_area_m2=req.roof_area_m2,
+            roof_tilt=req.roof_tilt,
+            roof_azimuth=req.roof_azimuth,
+        )
+        narr = spec.generate_narrative(result)
+        html = _build_html(result, narrative=narr or None)
         return {"html": html}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

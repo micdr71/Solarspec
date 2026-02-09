@@ -503,6 +503,55 @@ body {
     font-size: 0.85em;
 }
 
+/* API Key input */
+.api-key-wrapper {
+    display: flex;
+    gap: 8px;
+}
+
+.api-key-wrapper .form-input {
+    flex: 1;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+}
+
+.btn-toggle-key {
+    padding: 8px 16px;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--text-light);
+    font-size: 0.85em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.btn-toggle-key:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.ai-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.8em;
+    font-weight: 600;
+}
+
+.ai-badge.active {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.ai-badge.inactive {
+    background: #f5f5f5;
+    color: #9e9e9e;
+}
+
 /* Animations */
 .fade-in {
     animation: fadeIn 0.4s ease-out;
