@@ -299,6 +299,30 @@
     <div id="tab-generate" class="tab-panel">
         <div class="card">
             <div class="card-title">
+                <span class="icon">&#129302;</span>
+                AI Narrativa (opzionale)
+            </div>
+            <p style="color: var(--text-light); margin-bottom: 16px;">
+                Inserisci la tua chiave API Anthropic per arricchire il capitolato con narrativa
+                tecnica professionale generata dall'AI.
+            </p>
+            <div class="form-group" style="margin-bottom: 12px;">
+                <label class="form-label" for="api-key">Chiave API Anthropic</label>
+                <div class="api-key-wrapper">
+                    <input type="password" id="api-key" class="form-input"
+                           placeholder="sk-ant-..." autocomplete="off">
+                    <button type="button" class="btn-toggle-key" onclick="toggleApiKey()">Mostra</button>
+                </div>
+                <p class="form-hint">
+                    La chiave viene usata solo per questa sessione e non viene salvata.
+                    <a href="https://console.anthropic.com/" target="_blank" rel="noopener">Ottieni una chiave</a>
+                </p>
+            </div>
+            <div id="ai-status" class="ai-badge inactive">Narrativa AI non attiva</div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">
                 <span class="icon">&#128196;</span>
                 Genera Capitolato Tecnico
             </div>

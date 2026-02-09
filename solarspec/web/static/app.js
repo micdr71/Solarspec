@@ -58,6 +58,37 @@ function formatCurrency(num) {
     }).format(num);
 }
 
+// --- AI API Key ---
+
+function toggleApiKey() {
+    const input = document.getElementById('api-key');
+    const btn = input.parentElement.querySelector('.btn-toggle-key');
+    if (input.type === 'password') {
+        input.type = 'text';
+        btn.textContent = 'Nascondi';
+    } else {
+        input.type = 'password';
+        btn.textContent = 'Mostra';
+    }
+}
+
+function getApiKey() {
+    const el = document.getElementById('api-key');
+    return el ? el.value.trim() : '';
+}
+
+function updateAiStatus() {
+    const badge = document.getElementById('ai-status');
+    if (!badge) return;
+    if (getApiKey()) {
+        badge.className = 'ai-badge active';
+        badge.innerHTML = '&#10003; Narrativa AI attiva';
+    } else {
+        badge.className = 'ai-badge inactive';
+        badge.textContent = 'Narrativa AI non attiva';
+    }
+}
+
 // --- API Calls ---
 
 async function apiCall(endpoint, data) {
@@ -346,6 +377,13 @@ async function generateDocument(format) {
     }
 
     hideError('generate-error');
+    const apiKey = getApiKey();
+    const spinnerText = document.querySelector('#generate-spinner .spinner-text');
+    if (spinnerText) {
+        spinnerText.textContent = apiKey
+            ? 'Generazione con narrativa AI in corso...'
+            : 'Generazione documento...';
+    }
     showSpinner('generate-spinner');
 
     const address = document.getElementById('design-address').value.trim();
@@ -353,15 +391,18 @@ async function generateDocument(format) {
     const roofArea = parseFloat(document.getElementById('design-roof-area').value);
 
     try {
+        const payload = {
+            address,
+            annual_consumption_kwh: consumption,
+            roof_area_m2: roofArea,
+            format: format,
+        };
+        if (apiKey) payload.api_key = apiKey;
+
         const response = await fetch(`${API_BASE}/api/generate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                address,
-                annual_consumption_kwh: consumption,
-                roof_area_m2: roofArea,
-                format: format,
-            }),
+            body: JSON.stringify(payload),
         });
 
         if (!response.ok) {
@@ -390,6 +431,13 @@ async function previewDocument() {
     }
 
     hideError('generate-error');
+    const apiKey = getApiKey();
+    const spinnerText = document.querySelector('#generate-spinner .spinner-text');
+    if (spinnerText) {
+        spinnerText.textContent = apiKey
+            ? 'Generazione anteprima con narrativa AI...'
+            : 'Generazione anteprima...';
+    }
     showSpinner('generate-spinner');
 
     const address = document.getElementById('design-address').value.trim();
@@ -397,11 +445,14 @@ async function previewDocument() {
     const roofArea = parseFloat(document.getElementById('design-roof-area').value);
 
     try {
-        const response = await apiCall('/api/preview', {
+        const payload = {
             address,
             annual_consumption_kwh: consumption,
             roof_area_m2: roofArea,
-        });
+        };
+        if (apiKey) payload.api_key = apiKey;
+
+        const response = await apiCall('/api/preview', payload);
         const data = await response.json();
 
         // Show modal
@@ -443,4 +494,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') closePreview();
     });
+
+    // API key status update
+    const apiKeyInput = document.getElementById('api-key');
+    if (apiKeyInput) {
+        apiKeyInput.addEventListener('input', updateAiStatus);
+    }
 });
