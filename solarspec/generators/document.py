@@ -171,6 +171,10 @@ def _build_html(design: SystemDesign, narrative: dict[str, str] | None = None) -
             f"({design.inverter.power_kw} kW, &eta;={design.inverter.efficiency}%)</td></tr>"
         )
 
+    analisi_econ_narr = ""
+    if narr.get("analisi_economica"):
+        analisi_econ_narr = f'<p class="narrative">{_escape_html(narr["analisi_economica"])}</p>'
+
     economics_html = ""
     if design.economics:
         economics_html = f"""
@@ -213,10 +217,6 @@ def _build_html(design: SystemDesign, narrative: dict[str, str] | None = None) -
     dimensionamento_narr = ""
     if narr.get("dimensionamento"):
         dimensionamento_narr = f'<p class="narrative">{_escape_html(narr["dimensionamento"])}</p>'
-
-    analisi_econ_narr = ""
-    if narr.get("analisi_economica"):
-        analisi_econ_narr = f'<p class="narrative">{_escape_html(narr["analisi_economica"])}</p>'
 
     conclusioni_html = ""
     if narr.get("conclusioni"):
